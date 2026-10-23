@@ -1,0 +1,121 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTravelMemory(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.destination is string && data.destination.size() > 0 && data.destination.size() <= 200 &&
+             data.province is string && data.province.size() > 0 && data.province.size() <= 100 &&
+             data.region is string && data.region.size() <= 100 &&
+             data.category in ['Visited', 'Want to Visit', 'Favorite'] &&
+             data.latitude is number && data.latitude >= -90.0 && data.latitude <= 90.0 &&
+             data.longitude is number && data.longitude >= -180.0 && data.longitude <= 180.0 &&
+             (!('visitDate' in data) || (data.visitDate is string && data.visitDate.size() <= 30)) &&
+             (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 5000)) &&
+             (!('companions' in data) || (data.companions is string && data.companions.size() <= 300)) &&
+             (!('expenses' in data) || (data.expenses is number && data.expenses >= 0)) &&
+             (!('favoriteMemories' in data) || (data.favoriteMemories is string && data.favoriteMemories.size() <= 2000)) &&
+             (!('photos' in data) || (data.photos is list && data.photos.size() <= 20)) &&
+             (!('createdAt' in data) || data.createdAt is timestamp) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 150)) &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 200)) &&
+             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 500)) &&
+             (!('provincesVisited' in data) || (data.provincesVisited is list && data.provincesVisited.size() <= 100)) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function isValidPublicShare(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.ownerId is string && data.ownerId == request.auth.uid &&
+             data.destination is string && data.destination.size() <= 200 &&
+             data.province is string && data.province.size() <= 100 &&
+             (!('region' in data) || (data.region is string && data.region.size() <= 100)) &&
+             (!('category' in data) || (data.category is string && data.category.size() <= 50)) &&
+             (!('visitDate' in data) || (data.visitDate is string && data.visitDate.size() <= 30)) &&
+             (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 5000)) &&
+             (!('photos' in data) || (data.photos is list && data.photos.size() <= 20)) &&
+             (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    // User's private travel memories
+    match /users/{userId}/travel_memories/{memoryId} {
+      allow get, list: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidId(memoryId) &&
+                      isValidTravelMemory(incoming()) &&
+                      incoming().userId == userId &&
+                      incoming().createdAt == request.time;
+      allow update: if isOwner(userId) && isValidId(userId) && isValidId(memoryId) &&
+                      isValidTravelMemory(incoming()) &&
+                      incoming().userId == existing().userId &&
+                      incoming().createdAt == existing().createdAt &&
+                      incoming().updatedAt == request.time &&
+                      incoming().diff(existing()).affectedKeys().hasOnly([
+                        'destination', 'province', 'region', 'category', 'latitude', 'longitude',
+                        'visitDate', 'rating', 'notes', 'companions', 'expenses', 'favoriteMemories',
+                        'photos', 'updatedAt'
+                      ]);
+      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(memoryId);
+    }
+
+    // User's private profile
+    match /users/{userId}/profile/info {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create, update: if isOwner(userId) && isValidId(userId) &&
+                              isValidUserProfile(incoming()) &&
+                              incoming().userId == userId &&
+                              incoming().updatedAt == request.time;
+      allow delete: if isOwner(userId) && isValidId(userId);
+    }
+
+    // Read-only public share entries
+    match /public_shares/{shareId} {
+      allow get: if true;
+      allow list: if false; // prevent query scraping
+      allow create: if isSignedIn() && isValidId(shareId) &&
+                      isValidPublicShare(incoming()) &&
+                      incoming().ownerId == request.auth.uid &&
+                      incoming().createdAt == request.time;
+      allow update: if isSignedIn() && isValidId(shareId) &&
+                      isValidPublicShare(incoming()) &&
+                      existing().ownerId == request.auth.uid &&
+                      incoming().ownerId == existing().ownerId &&
+                      incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(shareId) &&
+                      existing().ownerId == request.auth.uid;
+    }
+  }
+}

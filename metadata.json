@@ -1,0 +1,8 @@
+{
+  "name": "My Philippine Travel Map 🇵🇭",
+  "description": "Interactive mobile-friendly Philippine travel map to track visited destinations, upload travel photos to Google Drive, and preserve memories with your Google account.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

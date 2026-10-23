@@ -1,0 +1,184 @@
+{
+  "entities": {
+    "TravelMemory": {
+      "title": "TravelMemory",
+      "description": "A travel memory or destination pinned on the Philippine map",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the memory",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who owns this travel memory",
+          "maxLength": 128
+        },
+        "destination": {
+          "type": "string",
+          "description": "Name of the travel destination or attraction",
+          "maxLength": 200
+        },
+        "province": {
+          "type": "string",
+          "description": "Philippine province name",
+          "maxLength": 100
+        },
+        "region": {
+          "type": "string",
+          "description": "Philippine administrative region name",
+          "maxLength": 100
+        },
+        "category": {
+          "type": "string",
+          "description": "Status category of the place",
+          "enum": ["Visited", "Want to Visit", "Favorite"]
+        },
+        "latitude": {
+          "type": "number",
+          "description": "Geographic latitude coordinate (-90 to 90)"
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Geographic longitude coordinate (-180 to 180)"
+        },
+        "visitDate": {
+          "type": "string",
+          "description": "Date visited in ISO format YYYY-MM-DD",
+          "maxLength": 30
+        },
+        "rating": {
+          "type": "number",
+          "description": "User star rating between 0 and 5"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Personal journal notes, stories, and travel tips",
+          "maxLength": 5000
+        },
+        "companions": {
+          "type": "string",
+          "description": "Travel companions (friends, family, solo)",
+          "maxLength": 300
+        },
+        "expenses": {
+          "type": "number",
+          "description": "Estimated travel expenses in Philippine Pesos (PHP)"
+        },
+        "favoriteMemories": {
+          "type": "string",
+          "description": "Favorite moment or highlights of this trip",
+          "maxLength": 2000
+        },
+        "photos": {
+          "type": "array",
+          "description": "List of travel photo references stored in Google Drive"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["id", "userId", "destination", "province", "region", "category", "latitude", "longitude"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private profile information and aggregate statistics for a user",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 150
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "provincesVisited": {
+          "type": "array",
+          "description": "Array of unique visited province names"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": ["userId"]
+    },
+    "PublicShare": {
+      "title": "PublicShare",
+      "description": "An optionally shared read-only snapshot of a travel memory",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "destination": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "province": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "region": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "visitDate": {
+          "type": "string",
+          "maxLength": 30
+        },
+        "rating": {
+          "type": "number"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 5000
+        },
+        "photos": {
+          "type": "array"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "ownerId", "destination", "province"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/travel_memories/{memoryId}": {
+      "schema": "TravelMemory",
+      "description": "User's private travel memories and map pins"
+    },
+    "/users/{userId}/profile/info": {
+      "schema": "UserProfile",
+      "description": "User's private profile details and aggregate stats"
+    },
+    "/public_shares/{shareId}": {
+      "schema": "PublicShare",
+      "description": "Optionally shared public read-only travel entries"
+    }
+  }
+}
